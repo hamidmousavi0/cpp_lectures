@@ -1,0 +1,29 @@
+---
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  cppcoreguidelines-*,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-owning-memory,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  performance-*,
+  readability-*,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  misc-*,
+  -misc-non-private-member-variables-in-classes,
+  -misc-include-cleaner
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*'
+FormatStyle: file
+# clang can't find GCC's internal headers (e.g. mm_malloc.h, included by MSYS2's malloc.h
+# via <cmath>/<cstdlib>), which shows up as "Error while processing" at line 1.
+# NOTE: the path contains the GCC version (15.2.0); update it after upgrading GCC.
+ExtraArgs:
+  - '--target=x86_64-w64-mingw32'
+  - '-idirafter'
+  - 'C:/msys64/ucrt64/lib/gcc/x86_64-w64-mingw32/15.2.0/include'
+...

@@ -1,6 +1,6 @@
-//Type Safety: How much a language prevents from typing error
-//           : How much a language guarantee the behaviour of the program 
-//	         : Which a function signiture guarantee the bahavior of the function 
+//Type Safety: How much a language prevents type errors
+//           : How much a language guarantees the behavior of the program
+//	         : How much a function signature guarantees the behavior of the function
 			 
 			 
 
@@ -10,7 +10,7 @@ void removeOddsFromEnd(std::vector<int>& vec){
 		vec.pop_back();
 	}
 }
-// What if vec is {}/ an empty vector? 
+// What if vec is {} (an empty vector)?
 //Undefined behavior: Function could crash, could give us
 // garbage, could accidentally give us some actual value
 // Solution:
@@ -20,7 +20,7 @@ void removeOddsFromEnd(std::vector<int>& vec){
 	}
 }
 
-// look at the vec.back()
+// Look at vec.back()
 /*
 value_type& vector<value_type>::back(){
 	return *(begin() + size() - 1);
@@ -28,16 +28,16 @@ value_type& vector<value_type>::back(){
 
 */
 
-// one solution
+// One solution
 
 std::pair<bool, valueType&> vector<valueType>::back(){
 	if(empty()){
-		return {false,valueType()}; // valueType is the default constructor
+		return {false,valueType()}; // valueType() calls the default constructor
 	}
 	return {true, *(begin() + size() -1)};
 }
-// What happen if valueType does not have a default construcor
-// even it does calling constructor is so expensive. 
+// What happens if valueType does not have a default constructor?
+// Even if it does, calling the constructor can be expensive.
 
 
 // Q: What should back return ?
@@ -53,8 +53,8 @@ std::pair<bool, valueType&> vector<valueType>::back(){
 
 // std::optional
 
-// What is std::optional<T>? is a template class which will either contain a value of type T or contain nothing (nullopt)
-// nullopt is different wtih nullptr
+// What is std::optional<T>? It is a template class which will either contain a value of type T or contain nothing (nullopt)
+// nullopt is different from nullptr
 // nullptr: is an object that can convert to a value of any pointer type.
 // nullopt: an object that can be converted to any optional type. 
 
@@ -89,16 +89,16 @@ std::optional<valueType> vector<valueType>::back(){
 }
 
 void removeOddsFromEnd(vector<int>& vec){
-	while(vec.back() % 2 ==1){ // we can not do arithmetic with an optional we need to get value of it if exist
+	while(vec.back() % 2 ==1){ // we cannot do arithmetic with an optional; we need to get its value if it exists
 		vec.pop_back();
 	}
 }
 	
-// std::optional types have a: .value() method that return contained value or throw bad_optional_access. 
+// std::optional types have a .value() method that returns the contained value or throws bad_optional_access.
 
-// it has also .value_or(valueType val) method that return value or default val.
+// It also has a .value_or(valueType val) method that returns the value, or val if it is empty.
 
-// it has .has_value() return true if contained value and false otherwise. 
+// It has .has_value(), which returns true if it contains a value and false otherwise.
 
 #include<iostream>
 #include<optional> 
@@ -122,7 +122,7 @@ void removeOddsFromEnd(vector<int>& vec){
 	}
 }
 
-// .and_then(function f) ---> return the result of calling f(value) if contained value exist, otherwise nullopt
+// .and_then(function f) ---> returns the result of calling f(value) if a contained value exists, otherwise nullopt
 // (f must return std::optional)
 
 #include<iostream> 
@@ -138,8 +138,8 @@ int main(){
 	std::optional<int> b = 7; 
 	auto result2 = b.and_then(half);
 }
-// we have also .transform(function f) 
-// we have also .or_else(function f) --> return value if exist otherwise return the result of calling f. 
+// We also have .transform(function f)
+// We also have .or_else(function f) --> returns the value if it exists, otherwise returns the result of calling f.
 
 
 

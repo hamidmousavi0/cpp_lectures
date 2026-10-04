@@ -1,15 +1,15 @@
 // g++ main.cpp -o main --> the output is a binary. 
 // How it works:
 /*
-1- preprocessing --> expnad #include and #define and macros --> produce expanded source (.i)
+1- preprocessing --> expand #include and #define and macros --> produce expanded source (.i)
 2- compilation ---> translate C++ into assembly (.s) 
 3- Assembly --> convert assembly to machine code (.o) --> object file --> compiled machine code for one 
 				translation unit (.cpp file).
-				when we have bunch of .o files that other pepole and project might want to use --->
-				we can bundle them into library. 
-				1- static library (.a on linux, .lib windows)---> a archive of .o files. 
-				no external dependency at runtime and he linker copies the needed machine code directly into your executable
-				2- Shared library (.so on linux, .dll on windows) ---> The .so file must be present at run time. 
+				when we have a bunch of .o files that other people and projects might want to use --->
+				we can bundle them into a library.
+				1- static library (.a on Linux, .lib on Windows) ---> an archive of .o files.
+				no external dependency at runtime; the linker copies the needed machine code directly into your executable
+				2- Shared library (.so on Linux, .dll on Windows) ---> The .so file must be present at run time. 
 				# Build a shared lib
 				g++ -fPIC -shared foo.cpp bar.cpp -o libfoo.so
 				# Link your program against it
@@ -23,11 +23,11 @@
 
 // Makefiles and make
 
-// make ---> build system program help us to compile. 
-// we do not need to compile every single file in the project. 
-// we can specify what compiler we want to use. 
-// to use make we need to have Makefile. 
-// Make tracks which file is changed since last compile. 
+// make ---> a build system program that helps us compile.
+// We do not need to compile every single file in the project.
+// We can specify which compiler we want to use.
+// To use make, we need to have a Makefile.
+// Make tracks which files have changed since the last compile.
 
 
 // Makefile
@@ -52,8 +52,8 @@ clean:
 */
 
 // CMake ---> build system generator. 
-// Use to generate Makefile
-// Higher level abstraction of makefile. 
+// Used to generate a Makefile
+// Higher-level abstraction over Makefiles.
 
 
 // CMakeLists.txt
@@ -61,10 +61,10 @@ clean:
 cmake_minimum_required(VERSION 3.10)
 project(cs106l_classes)
 set(CMAKE_CXX_STANDARD 20)
-file(GLOB SRC_FILES "*.cpp") // wildcard search for all files that have .cpp
+file(GLOB SRC_FILES "*.cpp") # wildcard search for all files that end in .cpp
 add_executable(main ${SRC_FILES})
-find_package(OpenSSL REQUIRED) ---> find_package searches standard system paths for an already-built library + its headers
-target_link_libraries(main PRIVATE OpenSSL::SSL) --> writes into the target
+find_package(OpenSSL REQUIRED) # find_package searches standard system paths for an already-built library + its headers
+target_link_libraries(main PRIVATE OpenSSL::SSL) # links the library into the target
 
 */
 
@@ -72,9 +72,9 @@ target_link_libraries(main PRIVATE OpenSSL::SSL) --> writes into the target
 // how to use
 /*
 1- make CMakeLists.txt
-2- make build folder whithin project
-3- go into build folder
-4- cmake .. ---> this run cmake on CMakeLists.txt and generate Makefile
+2- make a build folder within the project
+3- go into the build folder
+4- cmake .. ---> this runs cmake on CMakeLists.txt and generate Makefile
 5- run make
 6- execute your program. 
 

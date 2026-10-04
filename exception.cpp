@@ -1,16 +1,16 @@
-// Exception: Thrown but catch: handle exceptions to run code without error.
+// Exceptions: throw and catch: handle exceptions so the code runs without crashing.
 /*
 try{
      // code that we check for exception
 }
 catch ([exception type] e1){
-    // behavior when we enconter an error
+    // behavior when we encounter an error
 }
 catch ([exception type] e2){
     // else if
 }
-catch {
-    // else catch_all
+catch (...){
+    // else: catch-all
 }
 */
 #include <iostream>
@@ -26,7 +26,7 @@ int main()
         }
         else
         {
-            throw(age); // exception throw ---> we have a catch that manage this
+            throw(age); // throw an exception ---> the catch below handles it
         }
     }
     catch (int myNum)

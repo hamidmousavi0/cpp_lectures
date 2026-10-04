@@ -1,9 +1,9 @@
 #include<iostream> 
 #include<string> 
-#include<ifstream>
+#include<fstream>
 #include<memory>
 /*
-Why we need smart pointers: 
+Why do we need smart pointers?
 
 std::string returnNameCheckPawsome(int petId){
 	Pet* p = new Pet(petId);
@@ -11,10 +11,10 @@ std::string returnNameCheckPawsome(int petId){
 	if (p.type() == "Dog"){
 		std::cout<< p.firstName() << std::endl; 
 	}
-	std::string retrunstr = p.firstName()
-	// If a throw happen before delete the object then we have memory leckage. 
-	delete p; 
-	return retrunstr; 
+	std::string returnStr = p.firstName()
+	// If an exception is thrown before the object is deleted, we have a memory leak.
+	delete p;
+	return returnStr;
 	
 */
 
@@ -24,10 +24,10 @@ std::string returnNameCheckPawsome(int petId){
 //3 - Locks ---> try_lock, unlock
 //4 - Sockets ---> socket, close 
 
-// The resources need to release after Acquiring. 
+// Resources need to be released after they are acquired.
 
-// Q: How can we ensure that we release resources in the case that we have an exception. 
-// A: RAII ---> Rule1: All resources acquire with a class should be acquired in the constructor. 
+// Q: How can we ensure that we release resources in the case that we have an exception?
+// A: RAII ---> Rule1: All resources acquired by a class should be acquired in the constructor.
 //         ---> Rule2: All resources used by a class should be released in the destructor. 
 
 
@@ -42,16 +42,16 @@ void printFile(){
 	input.close(); 
 }
 
-// Is this RAII compliant?  No , ifstream open and closed in code not constructor and destructor
-// Q: how can we fix this? RAII for memory (Smart pointer). 
-// Avoid calling new and delete explicily. 
-// new return a pointer ---> if the pointer assigned to a plain pointer ---> object leckage
-// RAII for locks ---> lock_guard ---> create a new object that acquire resources in constructor and release in destructor. 
-// Smart Pointers ---> do the same in memory --> Smart Pointer class --> Dynamically Acquired Resources.
+// Is this RAII compliant? No, the ifstream is opened and closed in code, not in the constructor and destructor
+// Q: How can we fix this? RAII for memory (smart pointers).
+// Avoid calling new and delete explicitly.
+// new returns a pointer ---> if the pointer is assigned to a plain pointer ---> memory leak
+// RAII for locks ---> lock_guard ---> creates a new object that acquires resources in the constructor and releases them in the destructor.
+// Smart Pointers ---> do the same for memory --> Smart Pointer class --> Dynamically Acquired Resources.
 
-// we have Three types: 
-// 1- std::unique_ptr ---> uniquely own it's resources, can not be copied.
-// 2- std::shared_ptr ---> can make copies, destructed when the underlaying memory goes out of scope. 
+// We have three types:
+// 1- std::unique_ptr ---> uniquely owns its resources, cannot be copied.
+// 2- std::shared_ptr ---> can make copies; the underlying memory is freed when the last shared_ptr goes out of scope.
 // 3- std::weak_ptr ---> a class of pointers designed to mitigate circular dependency. 
 
 // BAD
@@ -65,18 +65,18 @@ void rawPtrFn(){
 
 void rawPtrFN(){
 	std::unique_ptr<Node> n {new Node}; 
-	std::unique_ptr<Node> copy = n; // error, if the original destructor is called after copy then the copy point to deallocated resources
-	
-	
-	// shared pointer solve this problem and deallocating the memory when all the share pointer go out of scope. 
-	// shared_ptr ---> pointer to T ---> Data in T object. 
-	//            ---> pointer to Control block ----> have some information (refrences count, weak count, ...)
+	std::unique_ptr<Node> copy = n; // error, if the original's destructor is called, the copy points to deallocated resources
+
+
+	// shared_ptr solves this problem by deallocating the memory when all the shared pointers go out of scope.
+	// shared_ptr ---> pointer to T ---> Data in T object.
+	//            ---> pointer to Control block ----> has some information (reference count, weak count, ...)
 }
 	
 	/*
 	How to initialize: 
 	1- std::unique_ptr<T> uniquePtr {new T};
-	2- std::shared_ptr<T> sharedPtr {new T}; Q: we are still call new????? No No 
+	2- std::shared_ptr<T> sharedPtr {new T}; Q: we are still calling new????? No No
 	3- std::weak_ptr<T> wp = sharedPtr;
 	*/
 // We need to write: 
@@ -84,10 +84,10 @@ void rawPtrFN(){
 // 2 - std::shared_ptr<T> sharedPtr = std::make_shared<T>();
 
 
-// std::weak_ptr is a pointer that can  look into the object own by shared_ptr without claiming of the ownership. 
-// Q: does it effect the refrences count? No
+// std::weak_ptr is a pointer that can look at an object owned by a shared_ptr without claiming ownership.
+// Q: Does it affect the reference count? No
 
-// std::weak_ptr can resolve the cirular dependency:
+// std::weak_ptr can resolve the circular dependency:
 /*
 class B; 
 
@@ -95,7 +95,7 @@ class A{
 	public: 
 		std::shared_ptr<B> ptr_to_b; 
 		~A(){
-			std::cout << "All A resources deallocate"; 
+			std::cout << "All A resources deallocated";
 		}
 };
 
