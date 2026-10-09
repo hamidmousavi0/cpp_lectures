@@ -21,7 +21,8 @@ Lecture 4: Containers
      standard library made of: Containers, Iterators, Functors, Algorithms.
    - "Template" = write the code once for ANY type T, instead of writing
      class IntList{...}, class StringList{...}, class DoubleList{...} separately:
-         template <typename T> class vector { ... };   ---> std::vector<int>, std::vector<std::string>
+         template <typename T> class vector { ... };
+         ---> std::vector<int>, std::vector<std::string>, ...
    - This lecture: Containers.
 
 3) Sequence containers: store elements in a sequence, accessed by position
@@ -121,7 +122,8 @@ Lecture 4: Containers
 
 5) Unordered associative containers: std::unordered_map, std::unordered_set
    - Usually faster drop-in replacements for map/set when you do NOT need sorted order:
-         std::map<int, std::string> courses{...};  --->  std::unordered_map<int, std::string> courses{...};
+         std::map<int, std::string> courses{...};
+         --->  std::unordered_map<int, std::string> courses{...};
    - Defined in <unordered_map>:
          template <class Key, class T, class Hash = std::hash<Key>,
                    class KeyEqual = std::equal_to<Key>, ...> class unordered_map;
@@ -145,6 +147,10 @@ Lecture 4: Containers
        std::unordered_map   | N/A          | very fast   | very fast      | very fast
    (map/set: O(log n). unordered: O(1) on average. vector/deque search: O(n).)
    Rule of thumb: default to std::vector; switch only when you need something it is bad at.
+
+7) Exercises
+   - Supersponsors (std::map + std::set): which investors sponsor two or more F1 teams?
+   - Fastest lap (std::vector): the smallest lap time in a vector.
 */
 #include <cstddef>
 #include <deque>
@@ -259,8 +265,8 @@ int main5() {
     for (int i = 1; i <= 1005; i++) {
         receivePrice(prices, i * 1.5);
     }
-    std::cout << "stored " << prices.size() << " prices, oldest " << prices.front()
-              << ", newest " << prices.back() << '\n';  // 1000 prices, oldest 9, newest 1507.5
+    std::cout << "stored " << prices.size() << " prices, oldest " << prices.front() << ", newest "
+              << prices.back() << '\n';  // 1000 prices, oldest 9, newest 1507.5
     return 0;
 }
 
@@ -407,6 +413,74 @@ int main12() {
 }
 
 // =====================================================================================
+// 7) Exercises
+// =====================================================================================
+// Exercise 1: return every investor who sponsors two or more teams.
+// Same idea as findDoubleAgents: remember who we have seen in a set.
+std::set<std::string> findSupersponsors(
+    const std::map<std::string, std::set<std::string>>& sponsors) {
+    std::set<std::string> seen;
+    std::set<std::string> supersponsors;
+    for (const auto& [team, investors] : sponsors) {
+        for (const auto& investor : investors) {
+            if (seen.contains(investor)) {
+                supersponsors.insert(investor);  // already sponsors another team
+            } else {
+                seen.insert(investor);
+            }
+        }
+    }
+    return supersponsors;
+}
+
+int main13() {
+    // A few of each team's 2026 partners.
+    std::map<std::string, std::set<std::string>> sponsors{
+        {"Alpine", {"BWT", "Microsoft", "Castore", "New Era", "Alpinestars", "Pirelli"}},
+        {"Aston Martin", {"Aramco", "Cognizant", "Puma", "Honda", "Pirelli"}},
+        {"Audi", {"Revolut", "Adidas", "Pirelli"}},
+        {"Cadillac", {"TWG AI", "Alpinestars", "Tommy Hilfiger", "Pirelli"}},
+        {"Ferrari", {"HP", "Shell", "Puma", "Richard Mille", "Pirelli"}},
+        {"Haas",
+         {"Toyota Gazoo Racing", "MoneyGram", "Castore", "New Era", "Alpinestars", "Pirelli"}},
+        {"McLaren", {"Mastercard", "Puma", "Richard Mille", "Alpinestars", "Pirelli"}},
+        {"Mercedes", {"Petronas", "Microsoft", "Adidas", "IWC Schaffhausen", "Pirelli"}},
+        {"Racing Bulls", {"Visa", "Cash App", "Ford", "Pirelli"}},
+        {"Red Bull", {"Oracle", "Visa", "Ford", "Castore", "New Era", "Sparco", "Pirelli"}},
+        {"Williams", {"Atlassian", "Gulf", "New Era", "Sparco", "Claude", "Pirelli"}},
+    };
+
+    std::set<std::string> supersponsors = findSupersponsors(sponsors);
+    std::cout << supersponsors.size() << " supersponsors:";
+    std::string separator = " ";
+    for (const std::string& investor : supersponsors) {
+        std::cout << separator << investor;  // sorted, because it is a std::set
+        separator = ", ";
+    }
+    std::cout << '\n';
+    return 0;
+}
+
+// Exercise 2: return the shortest lap time in laps (same pattern as min_val_vec).
+double fastestLap(const std::vector<double>& laps) {
+    double shortest = laps.at(0);  // throws std::out_of_range if laps is empty
+    for (double lap : laps) {
+        if (lap < shortest) {
+            shortest = lap;
+        }
+    }
+    return shortest;
+}
+
+int main14() {
+    std::vector<double> monza{82.347, 81.902, 81.455, 81.761, 82.010};
+    std::vector<double> monaco{74.318, 73.903, 74.122, 72.954};
+    std::cout << "Monza fastest lap: " << fastestLap(monza) << "s\n";    // 81.455
+    std::cout << "Monaco fastest lap: " << fastestLap(monaco) << "s\n";  // 72.954
+    return 0;
+}
+
+// =====================================================================================
 // main: runs every example in order
 // =====================================================================================
 int main() {
@@ -430,5 +504,8 @@ int main() {
     main11();
     std::cout << "--- 5) unordered_map ---\n";
     main12();
+    std::cout << "--- 7) Exercises ---\n";
+    main13();
+    main14();
     return 0;
 }
