@@ -1,6 +1,6 @@
 /*
 =====================================================================================
-Lecture 7: Classes
+Lecture 7: Classes, Class Templates and Const Correctness
 =====================================================================================
 
 0) Recap: iterator categories
@@ -17,7 +17,7 @@ Lecture 7: Classes
      A : Jump n steps at once (it += n, it[n]) and compare positions (it1 < it2).
    - Q3: What type of iterator is std::set<int>::iterator?
      A : Bidirectional (a set is a tree, so jumping 5 steps would be slow).
-   - Plan for today: Classes, Inheritance, Virtuality.
+   - Plan for today: Classes, Inheritance, Virtuality, Class Templates, Const correctness.
 
 1) Why classes?
    - C++ was originally called "C with classes".
@@ -195,12 +195,223 @@ Lecture 7: Classes
 10) Exercise: find the nearest elevator that still has capacity
    - Example: see findBestElevator in section 10 of the code below.
 
-11) Summary
+11) What are templates?
+   - Q: I need a way to store a list of integers!      A: I am on it.
+         class IntVector {
+             // Code to store a list of integers...
+         };
+   - Q: Now I need a way to store a list of doubles!   A: Right on it.
+         class DoubleVector {
+             // Code to store a list of doubles...
+         };
+   - Q: Could you give me a list of strings?           A: This is getting old...
+   - The logic is the same every time, only the type changes.
+     What if we could keep the logic, but change the type?
+         class IntVector {};
+         class DoubleVector {}; ---> template <typename T>
+         class StringVector {};     class Vector { ... };
+
+         Vector<int> v1;   Vector<double> v2;   Vector<std::string> v3;
+   - So std::vector<T> is a template. Q: How does this T work?
+
+12) Template classes
+   - Key idea: templates AUTOMATE CODE GENERATION.
+   - A template is like a FACTORY: you give it a type, it generates a new class.
+         int         ---> [ template Vector ] ---> Vector<int>
+         std::string ---> [ template Vector ] ---> Vector<std::string>
+   - Templates vs types:
+         template <typename T>
+         class Vector {};           // this is a TEMPLATE, it is not a type
+
+         Vector<std::string>        // this is a TYPE (a template INSTANTIATION)
+   - Input of the factory: a type (T). The factory: the template. Output: a new type.
+   - TEMPLATE INSTANTIATION: code for a specific type is generated on demand, when you
+     use it.
+   - Vector<double> and Vector<int> are two instantiations of the same template, but they
+     are two completely DIFFERENT types.
+   - Example: see Vector and main8 in section 12 of the code below.
+
+13) A few template quirks (strange behaviours)
+   13.1) Must copy the template<...> syntax in the .cpp file
+         When implementing a template, you might try something like this:
+             // Vector.h
+             template <typename T>
+             class Vector {
+             public:
+                 T& at(size_t index);
+             };
+
+             // Vector.cpp
+             T& Vector::at(size_t index) { ... }             // ERROR: what is T?
+         Compiler: "I do not know what T is!" So we add the template line:
+             template <typename T>
+             T& Vector::at(size_t index) { ... }             // ERROR: still wrong
+         Q: Does anyone still see a problem with this?
+         A: Vector is not a type, but Vector<T> is:
+             template <typename T>
+             T& Vector<T>::at(size_t index) { ... }          // OK
+   13.2) The .h file must include the .cpp file at the bottom
+         For NON-template classes, the .cpp file includes the .h file:
+             // StrVector.h
+             class StrVector {
+             public:
+                 std::string& at(size_t index);
+             };
+
+             // StrVector.cpp
+             #include "StrVector.h"
+             std::string& StrVector::at(size_t index) { ... }
+         For TEMPLATE classes, the .h file includes the .cpp file:
+             // Vector.h
+             template <typename T>
+             class Vector {
+             public:
+                 T& at(size_t index);
+             };
+             #include "Vector.cpp"
+
+             // Vector.cpp
+             template <typename T>
+             T& Vector<T>::at(size_t index) { ... }
+         That is pretty weird. Why? It is due to the way template code generation is
+         implemented in the compiler (and linker): to generate Vector<int>, the compiler
+         must see the whole template, not only the declarations. Do not worry too much
+         about the why.
+   13.3) typename is the same as class
+             template <typename T>
+             class Vector {};
+             template <class T>                              // exactly the same
+             class Vector {};
+
+             template <typename T, typename V> struct Pair;  // same as:
+             template <class T, class V> struct Pair;
+         (template <class T> also works for non-class types like int.)
+
+14) Const correctness: the problem
+   - Here is our Vector, without any const:
+         template <class T>
+         class Vector {
+         public:
+             size_t size();
+             bool empty();
+             T& operator[](size_t index);
+             T& at(size_t index);
+             void push_back(const T& elem);
+         };
+   - Let's use it:
+         void printVec(const Vector<int>& v) {
+             for (size_t i = 0; i < v.size(); i++) {   // ERROR
+                 std::cout << v.at(i) << " ";          // ERROR
+             }
+             std::cout << '\n';
+         }
+   - Compiler: ERROR, "passing const Vector<int> as this argument discards qualifiers".
+     Huh? There is a method called size. What is the problem?
+   - By passing v as const, we promise NOT to modify v.
+   - The compiler cannot be sure that methods like size and at do not modify v.
+     Remember, member functions can access member variables.
+
+15) Const methods
+   - A CONST METHOD says: "Dear compiler, I promise not to modify this object inside of
+     this method. Please hold me accountable."
+         template <class T>
+         class Vector {
+         public:
+             size_t size() const;
+             bool empty() const;
+             ...
+         };
+   - Make sure to also add const to the implementation in the .cpp file:
+         template <class T>
+         size_t Vector<T>::size() const { return logical_size; }
+   - Example: see size and empty in section 12 of the code below.
+
+16) Const overloading
+   - First try:
+         T& at(size_t index) const;
+     Problem #1: CONST users can modify the element. We return a non-const reference, so
+     v.at(0) = 42 compiles, but v is const so this should not be allowed.
+     Solution? Return a const reference:
+         const T& at(size_t index) const;
+     Problem #2: NON-CONST users cannot modify the element anymore. v.at(0) = 42 is now
+     an ERROR for every Vector, so we cannot update elements.
+   - Solution: CONST OVERLOADING. Define two versions of the method: one that gets called
+     for const objects, another that gets called for non-const objects.
+         // Vector.h
+         const T& at(size_t index) const;
+         T& at(size_t index);
+
+         // Vector.cpp
+         template <class T>
+         const T& Vector<T>::at(size_t index) const { return elems[index]; }
+
+         template <class T>
+         T& Vector<T>::at(size_t index) { return elems[index]; }
+   - Example: see at and main9 in section 16 of the code below.
+
+17) What is this?
+   - In a normal method, this is a pointer to the object:
+         void Point::setX(int x) { this->x = x; }             // Point* this
+   - In a const method, this is a pointer to a CONST object, so we cannot change it:
+         int Point::getX() const { return this->x; }          // const Point* this
+   - So in a const method of Vector<T>, this has type const Vector<T>*.
+   - Example: see Point in section 17 of the code below.
+
+18) The const interface
+   - Objects marked as const can only make use of the CONST INTERFACE.
+   - The const interface = the functions of the object that are const.
+         Vector<T>                                const Vector<T>
+           public:                                  public:
+             size_t size() const;                     size_t size() const;
+             bool empty() const;                      bool empty() const;
+             const T& at(size_t) const;               const T& at(size_t) const;
+             T& at(size_t);
+             void push_back(const T& elem);
+           private:                                 private:
+             size_t logical_size;                     const size_t logical_size;
+             T* elems;                                T* const elems;
+   - Careful: elems becomes T* const (the POINTER is const), not const T*. The elements
+     themselves are not const. This is why the compiler did not stop Problem #1 in
+     section 16: it is our job to return const T&.
+
+19) A slight aside: const_cast
+   - CASTING: the process of converting one type to another.
+   - const_cast allows us to cast away the const-ness of a variable.
+         const_cast<target_type>(expression)
+
+         int value = 5;
+         const int& ref = value;
+         int& mutableRef = const_cast<int&>(ref);   // now mutableRef can be changed
+   - When should we use const_cast? (Almost) never. If you need a mutable value, just do
+     not add const. Changing an object that was really declared const is undefined behavior.
+   - Example: see section 19 of the code below.
+
+20) A C++ party trick: the mutable keyword
+   - const_cast makes an ENTIRE object mutable. Is there anything more fine-grained?
+     Yes: a mutable field can be changed even inside a const object.
+         struct MutableStruct {
+             int dontTouchThis;
+             mutable double iCanChange;
+         };
+
+         const MutableStruct cm{1, 2.0};
+         cm.dontTouchThis = 42;   // ERROR
+         cm.iCanChange = 3.14;    // OK
+   - Example: see section 20 of the code below.
+
+21) Summary
    - We can make our own TYPES with classes.
    - We ENCAPSULATE variables with access specifiers (public, protected, private).
    - INHERITANCE lets us reuse and extend functionality.
    - VIRTUAL gives us control over inheritance (overriding, abstract classes, diamonds).
+   - Templates AUTOMATE CODE GENERATION: a template is a factory, not a type.
+   - Template quirks: copy template<...> and write Vector<T>:: in the .cpp file, include
+     the .cpp file at the bottom of the .h file, typename is the same as class.
+   - Mark methods that do not modify the object as CONST.
+   - Const objects can only use the CONST INTERFACE.
+   - Use CONST OVERLOADING when const and non-const users need different return types.
 */
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -484,6 +695,225 @@ int main7() {
 }
 
 // =====================================================================================
+// 12) A class template: Vector, with the const correctness of sections 15 and 16
+// =====================================================================================
+// ---- file: Vector.h ----
+template <typename T>  // template declaration
+class Vector {         // Vector is a template that takes in the name of a type T
+   public:
+    Vector();
+    ~Vector();
+
+    // Copying a class that owns memory needs more work, so we turn it off for now.
+    Vector(const Vector& other) = delete;
+    Vector& operator=(const Vector& other) = delete;
+
+    // Section 15: const methods, they do not modify the object
+    size_t size() const;
+    bool empty() const;
+
+    // Section 16: const overloading, one version for const and one for non-const objects
+    const T& at(size_t index) const;
+    T& at(size_t index);
+    const T& operator[](size_t index) const;
+    T& operator[](size_t index);
+
+    void push_back(const T& elem);
+
+   private:
+    size_t logical_size;
+    size_t capacity;
+    T* elems;  // pointer to an array allocated on the heap
+};  // T gets replaced when Vector is instantiated
+
+// The compiler will produce something like:
+// class Vector<int> {
+//     int& at(size_t index);  // More methods...
+// };
+
+// #include "Vector.cpp"       // section 13.2: at the BOTTOM of the .h file
+
+// ---- file: Vector.cpp ----
+// Section 13.1: every definition needs template<...> and Vector<T>::
+template <typename T>
+Vector<T>::Vector() : logical_size{0}, capacity{4}, elems{new T[capacity]} {}
+
+template <typename T>
+Vector<T>::~Vector() {
+    delete[] elems;
+}
+
+template <typename T>
+size_t Vector<T>::size() const {
+    return logical_size;
+}
+
+template <typename T>
+bool Vector<T>::empty() const {
+    return logical_size == 0;
+}
+
+template <typename T>
+const T& Vector<T>::at(size_t index) const {
+    return elems[index];  // (the real std::vector::at also checks the index)
+}
+
+template <typename T>
+T& Vector<T>::at(size_t index) {
+    return elems[index];
+}
+
+template <typename T>
+const T& Vector<T>::operator[](size_t index) const {
+    return elems[index];
+}
+
+template <typename T>
+T& Vector<T>::operator[](size_t index) {
+    return elems[index];
+}
+
+template <typename T>
+void Vector<T>::push_back(const T& elem) {
+    if (logical_size == capacity) {  // full ---> move to a bigger array
+        capacity *= 2;
+        T* bigger = new T[capacity];
+        for (size_t i = 0; i < logical_size; i++) {
+            bigger[i] = elems[i];
+        }
+        delete[] elems;
+        elems = bigger;
+    }
+    elems[logical_size] = elem;
+    logical_size++;
+}
+
+struct MyCustomStruct {
+    int value;
+};
+
+// Section 13.3: typename and class mean the same thing here
+template <typename T, class V>
+struct Pair {
+    T first;
+    V second;
+};
+
+int main8() {
+    // Template instantiation: the code for each type is generated here, on demand.
+    Vector<int> intVec;
+    Vector<double> doubleVec;
+    Vector<std::string> strVec;
+    Vector<Vector<int>> vecVec;
+    Vector<MyCustomStruct> structVec;
+
+    intVec.push_back(1);
+    doubleVec.push_back(2.5);
+    strVec.push_back("hello");
+    structVec.push_back(MyCustomStruct{7});
+
+    std::cout << intVec.at(0) << " " << doubleVec.at(0) << " " << strVec.at(0) << " "
+              << structVec.at(0).value << '\n';                  // 1 2.5 hello 7
+    std::cout << "vecVec is empty: " << vecVec.empty() << '\n';  // 1 (true)
+
+    Pair<int, std::string> pair{1, "one"};
+    std::cout << pair.first << " " << pair.second << '\n';  // 1 one
+    return 0;
+}
+
+// =====================================================================================
+// 16) Const correctness: const methods and const overloading in action
+// =====================================================================================
+// v is const, so this function can only use the const interface of Vector (section 18).
+void printVec(const Vector<int>& v) {
+    for (size_t i = 0; i < v.size(); i++) {  // size() const
+        std::cout << v.at(i) << " ";         // at() const ---> const int&
+    }
+    std::cout << '\n';
+}
+
+int main9() {
+    Vector<int> v;
+    v.push_back(1);
+    v.push_back(2);
+    v.push_back(3);
+
+    v.at(0) = 42;  // v is non-const ---> calls the non-const at(), returns int&
+    printVec(v);   // 42 2 3
+
+    const Vector<int>& cv = v;
+    std::cout << cv.at(0) << '\n';  // cv is const ---> calls the const at(): 42
+    // cv.at(0) = 7;        // ERROR: const at() returns const int&
+    // cv.push_back(4);     // ERROR: push_back is not part of the const interface
+    return 0;
+}
+
+// =====================================================================================
+// 17) What is this?
+// =====================================================================================
+// ---- file: point.h ----
+class Point {
+   private:
+    int x;
+
+   public:
+    Point(int x);
+    int getX() const;
+    void setX(int x);
+};
+
+// ---- file: point.cpp ----
+// #include "point.h"
+Point::Point(int x) : x{x} {}
+
+int Point::getX() const {  // this has type const Point*
+    // this->x = 5;         // ERROR: we promised not to modify the object
+    return this->x;
+}
+
+void Point::setX(int x) { this->x = x; }  // this has type Point*
+
+int main10() {
+    Point p{1};
+    p.setX(2);
+    std::cout << "p.getX(): " << p.getX() << '\n';  // 2
+
+    const Point cp{3};
+    // cp.setX(4);          // ERROR: setX is not a const method
+    std::cout << "cp.getX(): " << cp.getX() << '\n';  // 3
+    return 0;
+}
+
+// =====================================================================================
+// 19) const_cast: casting away const
+// =====================================================================================
+int main11() {
+    int value = 5;
+    const int& ref = value;
+    // ref = 6;             // ERROR: ref is a const reference
+    int& mutableRef = const_cast<int&>(ref);
+    mutableRef = 6;  // OK here, because value itself is not const
+    std::cout << "value: " << value << '\n';  // 6
+    return 0;
+}
+
+// =====================================================================================
+// 20) The mutable keyword
+// =====================================================================================
+struct MutableStruct {
+    int dontTouchThis;
+    mutable double iCanChange;
+};
+
+int main12() {
+    const MutableStruct cm{1, 2.0};
+    // cm.dontTouchThis = 42;   // ERROR: cm is const
+    cm.iCanChange = 3.14;  // OK: iCanChange is mutable
+    std::cout << cm.dontTouchThis << " " << cm.iCanChange << '\n';  // 1 3.14
+    return 0;
+}
+
+// =====================================================================================
 // main: runs every example in order
 // =====================================================================================
 int main() {
@@ -501,5 +931,15 @@ int main() {
     main6();
     std::cout << "--- 10) Exercise: findBestElevator ---\n";
     main7();
+    std::cout << "--- 12) Class templates ---\n";
+    main8();
+    std::cout << "--- 16) Const methods and const overloading ---\n";
+    main9();
+    std::cout << "--- 17) What is this? ---\n";
+    main10();
+    std::cout << "--- 19) const_cast ---\n";
+    main11();
+    std::cout << "--- 20) mutable ---\n";
+    main12();
     return 0;
 }
